@@ -1,0 +1,27 @@
+%YAML:1.0
+# data
+# the tum dataset directory, change it to yours! 
+# dataset_dir: /media/xiang/Data/Dataset/Kitti/dataset/sequences/05_quick_test
+dataset_dir: /home/orangepi/Downloads/Dataset/kitti/sequences/10
+
+
+# camera intrinsics
+camera.fx: 517.3
+camera.fy: 516.5
+camera.cx: 325.1
+camera.cy: 249.7
+# features param
+detect_max_features: 570
+num_features_init: 50
+num_features_tracking: 50
+# viewer fdetect saves param
+if_viewer_open: 0
+if_fdetect_open: 0
+if_saves_poses : 1
+set_saves_poses_kitti: 0
+set_saves_poses_tum: 1
+# frontend param
+if_set_inborder: 0
+# grid param
+grid_size_x: 5
+grid_size_y: 4
