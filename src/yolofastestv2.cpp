@@ -18,8 +18,8 @@ yoloFastestv2::yoloFastestv2()
     nmsThresh = 0.25;
 
     //模型输入尺寸大小
-    inputWidth = 325;//352
-    inputHeight = 325;
+    inputWidth = 300;//352
+    inputHeight = 300;
 
     //模型输入输出节点名称
     inputName = "input.1";
@@ -193,10 +193,13 @@ int yoloFastestv2::detection(const cv::Mat srcImg, std::vector<TargetBox> &dstBo
     float scaleW = (float)srcImg.cols / (float)inputWidth;
     float scaleH = (float)srcImg.rows / (float)inputHeight;
     
-    //resize of input image data
+    // resize of input image data
+    
+    std::cout<<"qwe" << srcImg.rows <<std::endl;
+    // PIXEL_BGR  PIXEL_GRAY
     ncnn::Mat inputImg = ncnn::Mat::from_pixels_resize(srcImg.data, ncnn::Mat::PIXEL_BGR,\
                                                        srcImg.cols, srcImg.rows, inputWidth, inputHeight); 
-
+    std::cout<<"qwe2"<<std::endl;
     //Normalization of input image data
     const float mean_vals[3] = {0.f, 0.f, 0.f};
     const float norm_vals[3] = {1/255.f, 1/255.f, 1/255.f};

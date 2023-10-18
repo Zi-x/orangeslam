@@ -1,4 +1,3 @@
-#include <opencv2/opencv.hpp>
 #include "orangeslam/algorithm.h"
 #include "orangeslam/backend.h"
 #include "orangeslam/config.h"
@@ -13,16 +12,23 @@ namespace orangeslam {
 Frontend::Frontend() {
     // gftt_ =
     //     cv::GFTTDetector::create(Config::Get<int>("num_features"), 0.01, 20);
-    int threshold = 25; // FAST 角点阈值
+    int threshold = Config::Get<int>("fast_threshold"); // FAST 角点阈值
     // 是否进行非极大值抑制
     fast_detector = cv::FastFeatureDetector::create(threshold, true);
     num_features_init_ = Config::Get<int>("num_features_init");
     detect_max_features_ = Config::Get<int>("detect_max_features");
+    min_num_features_tracking = Config::Get<int>("min_num_features_tracking");
+    trian_E = Config::Get<double>("trian_E");
+    inlier_features_needed_for_keyframe_ = Config::Get<int>("inlier_features_needed_for_keyframe");
+    disparity_needed_for_keyframe = Config::Get<float>("disparity_needed_for_keyframe");
+    inlier_features_needed_for_not_keyframe_ = Config::Get<int>("inlier_features_needed_for_not_keyframe");
+    chi2_th = Config::Get<double>("frontend_chi_th");
     xgrid = Config::Get<int>("grid_size_x");
     ygrid = Config::Get<int>("grid_size_y");
-    if(Config::Get<int>("if_set_inborder")){
-        if_set_inborder = true;
-    }
+    if(Config::Get<int>("if_set_inborder")) if_set_inborder = true;
+    if(Config::Get<int>("track_backend_open")) track_backend_open = true;
+    if_frontend_ReStereoInit_open = Config::Get<int>("if_frontend_ReStereoInit_open");
+    
 
     
 }
@@ -39,6 +45,7 @@ bool Frontend::AddFrame(orangeslam::Frame::Ptr frame) {
             Track();
             break;
         case FrontendStatus::LOST:
+        
             Reset();
             break;
     }
@@ -92,7 +99,7 @@ bool Frontend::Track() {
     if (tracking_inliers_ > num_features_tracking_) {
         // tracking good
         status_ = FrontendStatus::TRACKING_GOOD;
-    } else if (tracking_inliers_ > num_features_tracking_bad_) {
+    } else if (tracking_inliers_ > min_num_features_tracking) {
         // tracking badadsadadsasd
         status_ = FrontendStatus::TRACKING_BAD;
     } else {
@@ -101,28 +108,48 @@ bool Frontend::Track() {
     }   
 
 
-    if(if_set_fdetect)
-    if(tracking_inliers_ <= inlier_features_needed_for_keyframe_ * 1.5){
+    if(if_set_fdetect){
         auto s1_time = std::chrono::high_resolution_clock::now();
         if(fdetect_->fdetect_completed_bool_ == false)
         {
             std::mutex mutex;
             std::unique_lock<std::mutex> lock(mutex);
-            LOG(INFO) << "wait lock in frontend ";
+            
             if (fdetect_->fdetect_completed_bool_ == false) fdetect_->fdetect_completed_condition_.wait(lock);
         }
         auto s2_time = std::chrono::high_resolution_clock::now();
-        auto used_time = std::chrono::duration_cast<std::chrono::milliseconds>(s2_time - s1_time ).count();
+        auto used_time = std::chrono::duration_cast<std::chrono::milliseconds>(s2_time - s1_time).count();
         LOG(INFO) << "fdetect_result wait time used: "<< used_time << " ms";
-
     }
+
+    if(if_set_fdetect){
+        for (auto &fresult : fdetect_->fdetect_result) {
+            current_frame_->fdetect_rec_.push_back(fresult);   
+        }
+    }
+
+    // for (auto feat : current_frame_->features_left_) { 
+    //     for(auto rec_ : current_frame_->fdetect_rec_)
+    //     if(isPointInnerFdetectRect(feat->position_.pt, rec_, 1)){
+    //         auto mp = feat->map_point_.lock();
+    //         if (mp) {
+    //             mp->RemoveObservation(feat);
+    //         }
+    //         LOG(INFO) << "remove feat due fdetect ";
+    //         break;       
+    // }   
+    // }
+    // if(tracking_inliers_ <= inlier_features_needed_for_keyframe_ * 1.5){
+        
+
+    //}
     
 
     bool insert = InsertKeyframe();
     // 计算相对位姿A-B
     relative_motion_ = current_frame_->Pose() * last_frame_->Pose().inverse();
     // if(if_set_viewer)
-    if (viewer_ && !insert) viewer_->AddCurrentFrame(current_frame_);
+    if (viewer_) viewer_->AddCurrentFrame(current_frame_); //&& !insert
     
     return true;
 }
@@ -133,6 +160,7 @@ bool Frontend::InsertKeyframe() {
         // Don't insert keyframe
         return false;
     }
+    // LOG(INFO) << "pose 1 after 2:" << current_frame_ -> Pose().translation().transpose();
     LOG(INFO) << "disparity_accumulate_xy: " << disparity_accumulate_xy;
     LOG(INFO) << "tracking_inliers_: " << tracking_inliers_;
     disparity_accumulate_x = 0;
@@ -146,7 +174,7 @@ bool Frontend::InsertKeyframe() {
     LOG(INFO) << "Set frame " << current_frame_->id_ << " as keyframe "
               << current_frame_->keyframe_id_;
 
-    SetObservationsForKeyFrame();
+    SetObservationsForKeyFrame();//
     
     DetectFeatures();  // detect new features
     auto t4 = std::chrono::high_resolution_clock::now();
@@ -194,6 +222,7 @@ bool Frontend::InsertKeyframe() {
     /// InsertKeyFrame两者有前后关系，不用上线程锁
     /// 但若上一帧一直到现在还没优化完，这里InsertKeyFrame是否会影响
     /// 后端优化线程的安全？是否应该上锁？
+    if(track_backend_open)
     backend_->UpdateMap();
 
     auto t7 = std::chrono::high_resolution_clock::now();
@@ -238,10 +267,20 @@ int Frontend::TriangulateNewPoints() {
     std::vector<SE3> poses{camera_left_->pose(), camera_right_->pose()};
     SE3 current_pose_Twc = current_frame_->Pose().inverse();
     int cnt_triangulated_pts = 0;
+    
     for (size_t i = 0; i < current_frame_->features_left_.size(); ++i) {
         if (current_frame_->features_left_[i]->map_point_.expired() &&
             current_frame_->features_right_[i] != nullptr) {
             // 左图的特征点未关联地图点且存在右图匹配点，尝试三角化
+            bool found = false;
+            for(auto rec_ : current_frame_->fdetect_rec_){
+                if(isPointInnerFdetectRect(current_frame_->features_left_[i]->position_.pt, rec_, 5)){
+                    found = true; 
+                    LOG(INFO) << "in 在橢圓內 ";
+                    break; 
+                }
+            }
+            if(found) continue;
             std::vector<Vec3> points{
                 camera_left_->pixel2camera(
                     Vec2(current_frame_->features_left_[i]->position_.pt.x,
@@ -251,10 +290,11 @@ int Frontend::TriangulateNewPoints() {
                          current_frame_->features_right_[i]->position_.pt.y))};
             Vec3 pworld = Vec3::Zero();
 
-            if (triangulation(poses, points, pworld) && pworld[2] > 0 ) {
+            if (triangulation(poses, points, pworld, trian_E) && pworld[2] > 0) {
                 auto new_map_point = MapPoint::CreateNewMappoint();
                 pworld = current_pose_Twc * pworld;
                 new_map_point->SetPos(pworld);
+
                 new_map_point->AddObservation(
                     current_frame_->features_left_[i]);
                 new_map_point->AddObservation(
@@ -316,7 +356,7 @@ int Frontend::EstimateCurrentPose() {
     }
 
     // estimate the Pose the determine the outliers
-    const double chi2_th = 2.991;
+    // const double chi2_th = 3.991; // 5.991
     int cnt_outlier = 0;
     
     for (int iteration = 0; iteration < 4; ++iteration) {
@@ -358,7 +398,7 @@ int Frontend::EstimateCurrentPose() {
     for (auto &feat : features) {
         if (feat->is_outlier_) {
             feat->map_point_.reset();
-            feat->is_outlier_ = false;  // maybe we can still use it in future
+            feat->is_outlier_ = true;  // maybe we can still use it in future 用的上是什么意思
         }
     }
     return features.size() - cnt_outlier;
@@ -385,7 +425,7 @@ int Frontend::TrackLastFrame() {
     Mat error;
     cv::calcOpticalFlowPyrLK(
         last_frame_->left_img_, current_frame_->left_img_, kps_last,
-        kps_current, status, error, cv::Size(11, 11), 3,
+        kps_current, status, error, cv::Size(15, 15), 3,
         cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 30,
                          0.01),
         cv::OPTFLOW_USE_INITIAL_FLOW);
@@ -426,9 +466,11 @@ int Frontend::TrackLastFrame() {
 
 bool Frontend::StereoInit() {
     // fdetect_初始化需要一点时间，等待其进去wait再DetectCurrentFrame
-    std::this_thread::sleep_for(std::chrono::milliseconds(52));
     LOG(INFO) << "notify lock in StereoInit ";
-    if(if_set_fdetect) fdetect_->DetectCurrentFrame(current_frame_); 
+    if(if_set_fdetect) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(101));
+        fdetect_->DetectCurrentFrame(current_frame_); 
+    }
 
     if(if_set_fdetect)
     if(fdetect_->fdetect_completed_bool_ == false)
@@ -436,8 +478,7 @@ bool Frontend::StereoInit() {
         std::mutex mutex;
         std::unique_lock<std::mutex> lock(mutex);
         // if fdetect_->fdetect_completed_bool_ == false
-        LOG(INFO) << "wait lock in StereoInit ";
-        fdetect_->fdetect_completed_condition_.wait(lock);
+        if (fdetect_->fdetect_completed_bool_ == false) fdetect_->fdetect_completed_condition_.wait(lock);
         //fdetect_->fdetect_condition_completed_.wait(lock, [this](){ return fdetect_->operation_completed; });
     
     }
@@ -468,16 +509,10 @@ int Frontend::DetectFeatures() {
     for (auto &feat : current_frame_->features_left_) {
         pre_feat_num++;
         cv::rectangle(mask, feat->position_.pt - cv::Point2f(10, 10),
-                      feat->position_.pt + cv::Point2f(10, 10), 0, CV_FILLED);
+                      feat->position_.pt + cv::Point2f(10, 10), 0, cv::FILLED);
     }
-    if(if_set_fdetect)
-    for (auto &fresult : fdetect_->fdetect_result) {
-            cv::rectangle(mask, fresult.first,
-                        fresult.second, 0, CV_FILLED);
-    }
-
     
-
+    
     // std::vector<cv::Point2f> points;
     // cv::goodFeaturesToTrack(current_frame_->left_img_, points, detect_max_features_ ,0.01, 20, mask);
 
@@ -488,15 +523,17 @@ int Frontend::DetectFeatures() {
     // 每个网格需要提取多少高质量关键点
     int gridKeypointNum = detect_max_features_ / (xgrid * ygrid);
     // 网格图像,mask
-    cv::Mat gridMat;
-    cv::Mat gridMatMask;
+    // cv::Mat gridMat;
+    // cv::Mat gridMatMask;
+    
     for (int y = 0; y < ygrid; y++)
         for (int x = 0; x < xgrid; x++)
         {
             // 某网格特征点
             gridKeyPoints.clear();
-            gridMat = current_frame_->left_img_(cv::Rect(x*xsize, y*ysize, xsize, ysize));
-            gridMatMask = mask(cv::Rect(x*xsize, y*ysize, xsize, ysize));
+            //该矩形的左上角坐标是 (x*xsize, y*ysize)，宽度为 xsize，高度为 ysize。
+            cv::Mat gridMat = current_frame_->left_img_(cv::Rect(x*xsize, y*ysize, xsize, ysize));
+            cv::Mat gridMatMask = mask(cv::Rect(x*xsize, y*ysize, xsize, ysize));
             fast_detector->detect(gridMat, gridKeyPoints, gridMatMask);
 
             // 截取较强的特征
@@ -566,15 +603,16 @@ int Frontend::FindFeaturesInRight() {
             kps_right.push_back(kp->position_.pt);
         }
     }
-
+    if(kps_left.size() < 10) return 0;
     std::vector<uchar> status;
     Mat error;
     cv::calcOpticalFlowPyrLK(
         current_frame_->left_img_, current_frame_->right_img_, kps_left,
-        kps_right, status, error, cv::Size(11, 11), 3,
+        kps_right, status, error, cv::Size(13, 13), 3,
         cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 30,
                          0.01),
         cv::OPTFLOW_USE_INITIAL_FLOW);
+
     if(if_set_inborder)
     for (int i = 0; i < int(kps_right.size()); i++){
         if (status[i] && !inBorder(kps_right[i])){
@@ -583,6 +621,19 @@ int Frontend::FindFeaturesInRight() {
         }
         
     }
+    // std::vector<uchar> maskf;
+    // cv::findFundamentalMat(kps_left, kps_right, cv::FM_RANSAC, 1.0 ,0.99,maskf);
+    
+    // for (size_t i = 0, j = 0; i < status.size(); i++){
+    //     if (status[i] == 0) continue;
+    //     if (maskf[j] == 0){
+    //         status[i] = 0;
+    //         j++;
+    //         LOG(INFO) << "!maskf[j]        "<<j;
+    //         continue;
+    //     }
+    //     j++;    
+    // }
 
     int num_good_pts = 0;
     for (size_t i = 0; i < status.size(); ++i) {
@@ -602,6 +653,12 @@ int Frontend::FindFeaturesInRight() {
 
 bool Frontend::BuildInitMap() {
     std::vector<SE3> poses{camera_left_->pose(), camera_right_->pose()};
+    std::cout << "camera_left_:\n" << camera_left_->pose().matrix() << std::endl;
+    std::cout << "camera_right_:\n" << camera_right_->pose().matrix() << std::endl;
+    std::cout << "camera_left_K:\n" << camera_left_->K() << std::endl;
+    std::cout << "camera_right_K:\n" << camera_right_->K() << std::endl;
+    std::cout << "camera_left_size:\n" << current_frame_->left_img_.cols << " " << current_frame_->left_img_.rows << std::endl;
+    std::cout << "camera_right_size:\n" << current_frame_->right_img_.cols << " " << current_frame_->right_img_.rows << std::endl;
     size_t cnt_init_landmarks = 0;
     for (size_t i = 0; i < current_frame_->features_left_.size(); ++i) {
         if (current_frame_->features_right_[i] == nullptr) continue;
@@ -615,7 +672,7 @@ bool Frontend::BuildInitMap() {
                      current_frame_->features_right_[i]->position_.pt.y))};
         Vec3 pworld = Vec3::Zero();
 
-        if (triangulation(poses, points, pworld) && pworld[2] > 0) {
+        if (triangulation(poses, points, pworld, trian_E) && pworld[2] > 0) { // 
             auto new_map_point = MapPoint::CreateNewMappoint();
             new_map_point->SetPos(pworld);
             new_map_point->AddObservation(current_frame_->features_left_[i]);
@@ -626,6 +683,71 @@ bool Frontend::BuildInitMap() {
             map_->InsertMapPoint(new_map_point);
         }
     }
+    if(cnt_init_landmarks < 30) return false;
+    current_frame_->SetKeyFrame();
+    map_->InsertKeyFrame(current_frame_);
+    
+    backend_->UpdateMap();
+    LOG(INFO) << "pose 1 after: " << current_frame_ -> Pose().translation().transpose();
+
+    LOG(INFO) << "Initial map created with " << cnt_init_landmarks
+              << " map points";
+
+    // std::cin.get();
+
+    return true;
+}
+
+bool Frontend::Reset() { 
+    LOG(INFO) << "Reset is not implemented. ";
+    if(if_frontend_ReStereoInit_open){
+        if(reset_index == 0){
+        Eigen::Matrix3d R_original = relative_motion_.rotationMatrix();
+        Eigen::Matrix3d R_y_only = Eigen::Matrix3d::Identity();
+        R_y_only.col(1) = R_original.col(1);
+
+        Eigen::Matrix3d R_original_scale = 1 * R_y_only;
+        Eigen::Vector3d t_original_scale = relative_motion_.translation();
+        Eigen::JacobiSVD<Eigen::Matrix3d> svd(R_original_scale, Eigen::ComputeFullU | Eigen::ComputeFullV);
+        Eigen::Matrix3d correctedR = svd.matrixU() * svd.matrixV().transpose();
+        relative_motion_Re = SE3(correctedR, t_original_scale);
+        reset_index ++;
+        }
+    ReStereoInit();
+    }
+    return true;
+}
+
+bool Frontend::ReBuildInitMap() {
+    LOG(INFO) << "in ReBuildInitMap ";
+    std::vector<SE3> poses{camera_left_->pose(), camera_right_->pose()};
+    size_t cnt_init_landmarks = 0;
+    SE3 current_pose_Twc = current_frame_->Pose().inverse();
+    for (size_t i = 0; i < current_frame_->features_left_.size(); ++i) {
+        if (current_frame_->features_right_[i] == nullptr) continue;
+        // create map point from triangulation
+        std::vector<Vec3> points{
+            camera_left_->pixel2camera(
+                Vec2(current_frame_->features_left_[i]->position_.pt.x,
+                     current_frame_->features_left_[i]->position_.pt.y)),
+            camera_right_->pixel2camera(
+                Vec2(current_frame_->features_right_[i]->position_.pt.x,
+                     current_frame_->features_right_[i]->position_.pt.y))};
+        Vec3 pworld = Vec3::Zero();
+
+        if (triangulation(poses, points, pworld, trian_E) && pworld[2] > 0) { // 
+            auto new_map_point = MapPoint::CreateNewMappoint();
+            pworld = current_pose_Twc * pworld;
+            new_map_point->SetPos(pworld);
+            new_map_point->AddObservation(current_frame_->features_left_[i]);
+            new_map_point->AddObservation(current_frame_->features_right_[i]);
+            current_frame_->features_left_[i]->map_point_ = new_map_point;
+            current_frame_->features_right_[i]->map_point_ = new_map_point;
+            cnt_init_landmarks++;
+            map_->InsertMapPoint(new_map_point);
+        }
+    }
+    
     current_frame_->SetKeyFrame();
     map_->InsertKeyFrame(current_frame_);
     
@@ -637,9 +759,44 @@ bool Frontend::BuildInitMap() {
     return true;
 }
 
-bool Frontend::Reset() {
-    LOG(INFO) << "Reset is not implemented. ";
-    return true;
+bool Frontend::ReStereoInit() {
+    // fdetect_初始化需要一点时间，等待其进去wait再DetectCurrentFrame
+    LOG(INFO) << "notify lock in ReStereoInit ";
+    if(if_set_fdetect) fdetect_->DetectCurrentFrame(current_frame_); 
+
+    if(if_set_fdetect)
+    if(fdetect_->fdetect_completed_bool_ == false)
+    {
+        std::mutex mutex;
+        std::unique_lock<std::mutex> lock(mutex);
+        // if fdetect_->fdetect_completed_bool_ == false
+        LOG(INFO) << "wait lock in ReStereoInit "; 
+        fdetect_->fdetect_completed_condition_.wait(lock);
+        //fdetect_->fdetect_condition_completed_.wait(lock, [this](){ return fdetect_->operation_completed; });
+    
+    }
+
+
+    DetectFeatures();
+    int num_coor_features = FindFeaturesInRight();
+    if (num_coor_features < num_features_init_ * 0.8) {
+        LOG(INFO) << "Set Pose ReStereoInit ";
+        current_frame_->SetPose(relative_motion_Re * last_frame_->Pose());
+        return false;
+    }
+    current_frame_->SetPose(relative_motion_Re * last_frame_->Pose());
+    bool build_map_success = ReBuildInitMap();
+    if (build_map_success) {
+        reset_index = 0;
+        status_ = FrontendStatus::TRACKING_GOOD;
+        // if(if_set_viewer)
+        if (viewer_) {
+            viewer_->AddCurrentFrame(current_frame_);
+            viewer_->UpdateMap();
+        }
+        return true;
+    }
+    return false;
 }
 
 }  // namespace orangeslam

@@ -1,0 +1,22 @@
+--------------------------------------------------------------------------------
+Synchronizing trajectories...
+Found 316 of max. 316 possible matching timestamps between...
+	/home/orangepi/Downloads/posetrue_kitti_to_tum/kitti_05_tum.txt
+and:	./build/tum_poses_05_0821_1802.txt
+..with max. time diff.: 0.01 (s) and time offset: 0.0 (s).
+--------------------------------------------------------------------------------
+Compared 316 absolute pose pairs.
+Calculating APE for full transformation pose relation...
+--------------------------------------------------------------------------------
+APE w.r.t. full transformation (unit-less)
+(not aligned)
+
+       max	19.253001
+      mean	7.748479
+    median	8.178116
+       min	0.060169
+      rmse	9.083125
+       sse	26070.996919
+       std	4.739644
+
+

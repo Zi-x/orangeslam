@@ -1,0 +1,141 @@
+rangepi@orangepi5:~/orangeslam/orangeslam_modify2_backup$ sh getresult_openloris.sh market1-1 market1-1_nf ./build_old/tum_poses_-1_0927_1651.txt -va
+--------------------------------------------------------------------------------
+Loaded 8013 stamps and poses from: /home/orangepi/Downloads/Dataset/openloris/market1-1/groundtruth.txt
+Loaded 320 stamps and poses from: ./build_old/tum_poses_-1_0927_1651.txt
+--------------------------------------------------------------------------------
+Synchronizing trajectories...
+Found 243 of max. 320 possible matching timestamps between...
+	/home/orangepi/Downloads/Dataset/openloris/market1-1/groundtruth.txt
+and:	./build_old/tum_poses_-1_0927_1651.txt
+..with max. time diff.: 0.01 (s) and time offset: 0.0 (s).
+--------------------------------------------------------------------------------
+Aligning using Umeyama's method...
+Rotation of alignment:
+[[ 0.14117987 -0.98543379 -0.09480764]
+ [ 0.98700822  0.14752827 -0.06364098]
+ [ 0.07670078 -0.0845911   0.99345928]]
+Translation of alignment:
+[-129.35833299  -20.50021861   -3.41576288]
+Scale correction: 1.0
+--------------------------------------------------------------------------------
+Compared 243 absolute pose pairs.
+Calculating APE for full transformation pose relation...
+--------------------------------------------------------------------------------
+APE w.r.t. full transformation (unit-less)
+(with SE(3) Umeyama alignment)
+
+       max	7.140156
+      mean	3.617958
+    median	3.246023
+       min	2.457531
+      rmse	3.783974
+       sse	3479.385388
+       std	1.108531
+
+--------------------------------------------------------------------------------
+Plotting results... 
+/home/orangepi/.local/lib/python3.8/site-packages/evo/tools/plot.py:163: UserWarning: The figure layout has changed to tight
+  fig.tight_layout()
+/home/orangepi/.local/lib/python3.8/site-packages/evo/tools/plot.py:225: UserWarning: The figure layout has changed to tight
+  fig.tight_layout()
+The PostScript backend does not support transparency; partially transparent artists will be rendered opaque.
+Plot saved to result/openlorismarket1-1_market1-1_nf_raw.eps
+The PostScript backend does not support transparency; partially transparent artists will be rendered opaque.
+Plot saved to result/openlorismarket1-1_market1-1_nf_map.eps
+--------------------------------------------------------------------------------
+Saving results to result/openlorismarket1-1_market1-1_nf.zip...
+orangepi@orangepi5:~/orangeslam/orangeslam_modify2_backup$ sh getresult_openloris.sh market1-1 market1-1_nf ./build_old/tum_poses_-1_092 -va
+tum_poses_-1_0927_1651.txt      tum_poses_-1_0928_1856.txt
+tum_poses_-1_0927_1740good.txt  tum_poses_-1_0928_1925.txt
+tum_poses_-1_0928_1156.txt      tum_poses_-1_0928_1935.txt
+tum_poses_-1_0928_1216.txt      tum_poses_-1_0928_1951.txt
+tum_poses_-1_0928_1228.txt      tum_poses_-1_0928_1959.txt
+tum_poses_-1_0928_1816.txt      
+orangepi@orangepi5:~/orangeslam/orangeslam_modify2_backup$ sh getresult_openloris.sh market1-1 market1-1_nf ./build_old/tum_poses_-1_0928_18 -va
+tum_poses_-1_0928_1816.txt  tum_poses_-1_0928_1856.txt
+orangepi@orangepi5:~/orangeslam/orangeslam_modify2_backup$ sh getresult_openloris.sh market1-1 market1-2_nf ./build_old/tum_poses_-1_0928_1816.txt -va
+--------------------------------------------------------------------------------
+Loaded 8013 stamps and poses from: /home/orangepi/Downloads/Dataset/openloris/market1-1/groundtruth.txt
+Loaded 443 stamps and poses from: ./build_old/tum_poses_-1_0928_1816.txt
+--------------------------------------------------------------------------------
+Synchronizing trajectories...
+Found 319 of max. 443 possible matching timestamps between...
+	/home/orangepi/Downloads/Dataset/openloris/market1-1/groundtruth.txt
+and:	./build_old/tum_poses_-1_0928_1816.txt
+..with max. time diff.: 0.01 (s) and time offset: 0.0 (s).
+--------------------------------------------------------------------------------
+Aligning using Umeyama's method...
+Rotation of alignment:
+[[ 0.14567467 -0.98420759 -0.10056992]
+ [ 0.98645827  0.15224217 -0.06101145]
+ [ 0.07535892 -0.0903202   0.99305755]]
+Translation of alignment:
+[-129.4170938   -19.20069081   -3.49149612]
+Scale correction: 1.0
+--------------------------------------------------------------------------------
+Compared 319 absolute pose pairs.
+Calculating APE for full transformation pose relation...
+--------------------------------------------------------------------------------
+APE w.r.t. full transformation (unit-less)
+(with SE(3) Umeyama alignment)
+
+       max	6.464675
+      mean	3.331390
+    median	3.134098
+       min	2.372763
+      rmse	3.447298
+       sse	3790.952440
+       std	0.886400
+
+--------------------------------------------------------------------------------
+Plotting results... 
+/home/orangepi/.local/lib/python3.8/site-packages/evo/tools/plot.py:163: UserWarning: The figure layout has changed to tight
+  fig.tight_layout()
+/home/orangepi/.local/lib/python3.8/site-packages/evo/tools/plot.py:225: UserWarning: The figure layout has changed to tight
+  fig.tight_layout()
+The PostScript backend does not support transparency; partially transparent artists will be rendered opaque.
+Plot saved to result/openlorismarket1-1_market1-2_nf_raw.eps
+The PostScript backend does not support transparency; partially transparent artists will be rendered opaque.
+Plot saved to result/openlorismarket1-1_market1-2_nf_map.eps
+--------------------------------------------------------------------------------
+Saving results to result/openlorismarket1-1_market1-2_nf.zip...
+orangepi@orangepi5:~/orangeslam/orangeslam_modify2_backup$ sh getresult_openloris.sh market1-1 market1-2_nf ./build_old/tum_poses_-1_0928_12.txt -va
+tum_poses_-1_0928_1216.txt  tum_poses_-1_0928_1228.txt
+orangepi@orangepi5:~/orangeslam/orangeslam_modify2_backup$ sh getresult_openloris.sh market1-1 market1-2_nf ./build_old/tum_poses_-1_0928_12.txt -va
+tum_poses_-1_0928_1216.txt  tum_poses_-1_0928_1228.txt
+orangepi@orangepi5:~/orangeslam/orangeslam_modify2_backup$ sh getresult_openloris.sh market1-1 market1-3_nf ./build_old/tum_poses_-1_0928_1216.txt -va
+--------------------------------------------------------------------------------
+Loaded 8013 stamps and poses from: /home/orangepi/Downloads/Dataset/openloris/market1-1/groundtruth.txt
+Loaded 341 stamps and poses from: ./build_old/tum_poses_-1_0928_1216.txt
+--------------------------------------------------------------------------------
+Synchronizing trajectories...
+Found 260 of max. 341 possible matching timestamps between...
+	/home/orangepi/Downloads/Dataset/openloris/market1-1/groundtruth.txt
+and:	./build_old/tum_poses_-1_0928_1216.txt
+..with max. time diff.: 0.01 (s) and time offset: 0.0 (s).
+--------------------------------------------------------------------------------
+Aligning using Umeyama's method...
+Rotation of alignment:
+[[ 0.14168655 -0.98422752 -0.10592978]
+ [ 0.98499763  0.15082281 -0.08385791]
+ [ 0.09851189 -0.09245904  0.99083133]]
+Translation of alignment:
+[-129.48953033  -19.60189072   -3.82331853]
+Scale correction: 1.0
+--------------------------------------------------------------------------------
+Compared 260 absolute pose pairs.
+Calculating APE for full transformation pose relation...
+--------------------------------------------------------------------------------
+APE w.r.t. full transformation (unit-less)
+(with SE(3) Umeyama alignment)
+
+       max	6.866182
+      mean	3.577271
+    median	3.273989
+       min	2.440200
+      rmse	3.728902
+       sse	3615.225514
+       std	1.052543
+
+--------------------------------------------------------------------------------
+Plotting results... 

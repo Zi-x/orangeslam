@@ -4,18 +4,20 @@
 #include "orangeslam/g2o_types.h"
 #include "orangeslam/map.h"
 #include "orangeslam/mappoint.h"
+#include "orangeslam/config.h"
 
 namespace orangeslam {
 
 Backend::Backend() {
 
     backend_running_.store(true);
+    chi2_th = Config::Get<double>("backend_chi_th");
     backend_thread_ = std::thread(std::bind(&Backend::BackendLoop, this));
 
 }
 
 void Backend::UpdateMap() {
-    std::unique_lock<std::mutex> lock(data_mutex_);
+    std::unique_lock<std::mutex> lock(data_mutex_backend_);
     map_update_.notify_one();
 }
 
@@ -27,9 +29,8 @@ void Backend::Stop() {
 
 void Backend::BackendLoop() {
     while (backend_running_.load()) {
-        std::unique_lock<std::mutex> lock(data_mutex_);
+        std::unique_lock<std::mutex> lock(data_mutex_backend_);
         map_update_.wait(lock);
-
         /// 后端仅优化激活的Frames和Landmarks
         Map::KeyframesType active_kfs = map_->GetActiveKeyFrames();
         Map::LandmarksType active_landmarks = map_->GetActiveMapPoints();
@@ -72,30 +73,37 @@ void Backend::Optimize(Map::KeyframesType &keyframes,
 
     // K 和左右外参
     Mat33 K = cam_left_->K();
+    Mat33 K_right = cam_right_->K();
     SE3 left_ext = cam_left_->pose();
     SE3 right_ext = cam_right_->pose();
 
+    // LOG(INFO) << "K: \n " << K ;
+    // LOG(INFO) << "left_ext: \n" << left_ext.matrix() ;
+    // LOG(INFO) << "right_ext: \n" << right_ext.matrix() ;
+
     // edges
     int index = 1;
-    double chi2_th = 3.991;  // robust kernel 阈值
+    // double chi2_th = 5.991;  // robust kernel 阈值
     std::map<EdgeProjection *, Feature::Ptr> edges_and_features;
 
     for (auto &landmark : landmarks) {
         if (landmark.second->is_outlier_) continue;
         unsigned long landmark_id = landmark.second->id_;
         auto observations = landmark.second->GetObs();
-        for (auto &obs : observations) {
+        for (auto &obs : observations) { 
             if (obs.lock() == nullptr) continue;
             auto feat = obs.lock();
             if (feat->is_outlier_ || feat->frame_.lock() == nullptr) continue;
-
+            // if (!feat->is_on_left_image_) continue;
             auto frame = feat->frame_.lock();
             EdgeProjection *edge = nullptr;
             if (feat->is_on_left_image_) {
                 edge = new EdgeProjection(K, left_ext);
-            } else {
-                edge = new EdgeProjection(K, right_ext);
+            } 
+            else {
+                edge = new EdgeProjection(K_right, right_ext);
             }
+            // openloris不优化右目的点试试
 
             // 如果landmark还没有被加入优化，则新加一个顶点
             if (vertices_landmarks.find(landmark_id) ==
@@ -153,8 +161,13 @@ void Backend::Optimize(Map::KeyframesType &keyframes,
     for (auto &ef : edges_and_features) {
         if (ef.first->chi2() > chi2_th) {
             ef.second->is_outlier_ = true;
-            // remove the observation
-            ef.second->map_point_.lock()->RemoveObservation(ef.second);
+            auto mp = ef.second->map_point_.lock();
+            // 我的改动地方
+            if(mp){
+                mp->RemoveObservation(ef.second);
+            }
+            
+            
         } else {
             ef.second->is_outlier_ = false;
         }

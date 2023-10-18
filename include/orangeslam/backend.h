@@ -49,12 +49,14 @@ class Backend {
 
     std::shared_ptr<Map> map_;
     std::thread backend_thread_;
-    std::mutex data_mutex_;
+    std::mutex data_mutex_backend_;
 
     std::condition_variable map_update_;
     std::atomic<bool> backend_running_;
 
     Camera::Ptr cam_left_ = nullptr, cam_right_ = nullptr;
+
+    double chi2_th;
 };
 
 }  // namespace orangeslam

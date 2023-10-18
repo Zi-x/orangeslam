@@ -27,10 +27,14 @@ class Fdetect{
 
      std::condition_variable fdetect_completed_condition_;
 
-     std::vector<std::pair<cv::Point, cv::Point>> fdetect_result;
+     std::vector<cv::Rect> fdetect_result;
+
+     int fdetect_frame_num = 0;
 
     private:
 
+
+     double fdetect_scale = 1.0;
 
      void Fdetect_Thread_Loop();
 

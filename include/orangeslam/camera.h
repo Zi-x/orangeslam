@@ -36,6 +36,17 @@ class Camera {
         k << fx_, 0, cx_, 0, fy_, cy_, 0, 0, 1;
         return k;
     }
+    
+    void set_fx_fy_cx_cy_(double fx, double fy, double cx, double cy){
+        fx_ = fx;
+        fy_ = fy;
+        cx_ = cx;
+        cy_ = cy;
+    }
+    
+    void set_pose_(SE3 pose){
+        pose_ = pose;
+    }
 
     // coordinate transform: world, camera, pixel
     Vec3 world2camera(const Vec3 &p_w, const SE3 &T_c_w);

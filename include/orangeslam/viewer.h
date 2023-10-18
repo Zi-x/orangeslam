@@ -62,6 +62,10 @@ class Viewer {
     /// plot the features in current frame into an image
     cv::Mat PlotFrameImage();
 
+    // cv::Mat PlotRightFrameImage();
+
+    int if_viewer_map_updated_realtime = 0;
+
     Frame::Ptr current_frame_ = nullptr;
     Map::Ptr map_ = nullptr;
 

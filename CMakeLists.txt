@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
 project(orangeslam)
-
 set(CMAKE_BUILD_TYPE Release) #Release
 # set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g")
 # -std=c++14：指定编译器使用C++14标准进行编译。
@@ -10,7 +9,7 @@ set(CMAKE_BUILD_TYPE Release) #Release
 # set(CMAKE_CXX_FLAGS "-std=c++11 -Wall")
 set(CMAKE_CXX_FLAGS "-std=gnu++14 -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE  "-std=gnu++14 -O3 -fopenmp -pthread")
-
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -g -O3")
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
@@ -20,8 +19,9 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 include_directories("/usr/include/eigen3")
 
 # OpenCV
-find_package(OpenCV REQUIRED) 
-include_directories(${OpenCV_INCLUDE_DIRS})
+# set(CMAKE_PREFIX_PATH "/home/orangepi/opencv4") 
+find_package(OpenCV 3 REQUIRED) 
+# include_directories(${OpenCV_INCLUDE_DIRS})
 
 # pangolin
 find_package(Pangolin REQUIRED 0.8)
@@ -57,7 +57,6 @@ set(THIRD_PARTY_LIBS
         ${Sophus_LIBRARIES}
         ${Pangolin_LIBRARIES}  GL GLU GLEW glut #GLESv2 EGL
         g2o_core g2o_stuff g2o_types_sba g2o_solver_csparse g2o_csparse_extension
-
         ${GLOG_LIBRARIES}
         ${GFLAGS_LIBRARIES}
         pthread

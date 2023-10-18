@@ -19,8 +19,16 @@
 
 #include "orangeslam/map.h"
 #include "orangeslam/feature.h"
+#include "orangeslam/config.h"
 
 namespace orangeslam {
+
+Map::Map(){
+    num_active_keyframes_ = Config::Get<int>("num_active_keyframes");
+    min_dis_th = Config::Get<float>("map_min_dis_th");
+    // max_dis_th = Config::Get<float>("map_max_dis_th");
+    
+}
 
 void Map::InsertKeyFrame(Frame::Ptr frame) {
     current_frame_ = frame;
@@ -54,7 +62,7 @@ void Map::InsertMapPoint(MapPoint::Ptr map_point) {
 
 void Map::RemoveOldKeyframe() {
     if (current_frame_ == nullptr) return;
-    // 寻找与当前帧最近与最远的两个关键帧
+    // 
     double max_dis = 0, min_dis = 9999;
     double max_kf_id = 0, min_kf_id = 0;
     auto Twc = current_frame_->Pose().inverse();
@@ -71,13 +79,12 @@ void Map::RemoveOldKeyframe() {
         }
     }
 
-    const double min_dis_th = 0.2;  // 最近阈值
+    // 最近阈值 ,加个最远阈值？
     Frame::Ptr frame_to_remove = nullptr;
     if (min_dis < min_dis_th) {
         // 如果存在很近的帧，优先删掉最近的
         frame_to_remove = keyframes_.at(min_kf_id);
-    } else {
-        // 删掉最远的
+    }else{
         frame_to_remove = keyframes_.at(max_kf_id);
     }
 

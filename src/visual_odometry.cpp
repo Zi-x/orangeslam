@@ -12,13 +12,21 @@ VisualOdometry::VisualOdometry(std::string &config_path)
     : config_file_path_(config_path) {}
 
 bool VisualOdometry::Init() {
+    
     // read from config file
     if (Config::SetParameterFile(config_file_path_) == false) {
         return false;
     }
-
-    dataset_ =
-        Dataset::Ptr(new Dataset(Config::Get<std::string>("dataset_dir")));
+    if(Config::Get<int>("use_kitti")){
+        dataset_dir_str = Config::Get<std::string>("dataset_dir_kitti");
+        dataset_ = Dataset::Ptr(new Dataset(dataset_dir_str));
+    }else if(Config::Get<int>("use_openloris")){
+        dataset_dir_str = Config::Get<std::string>("dataset_dir_openloris");
+        dataset_ = Dataset::Ptr(new Dataset(dataset_dir_str));
+    }else if(Config::Get<int>("use_realworld")){
+        dataset_ = Dataset::Ptr(new Dataset("realworld"));
+        use_realworld_flag = true;
+    }
     CHECK_EQ(dataset_->Init(), true);
 
     // create components and links
@@ -33,15 +41,13 @@ bool VisualOdometry::Init() {
         viewer_ = Viewer::Ptr(new Viewer);
     }
     
-    
-    
     // frontend_ backend viewer setmap后内部的成员的map都指向map_,因此是共享的?
     frontend_->SetBackend(backend_);
     frontend_->SetMap(map_);
     
-
     if(Config::Get<int>("if_fdetect_open")){
         frontend_->setFdetect(fdetect_);
+        
     }
     if(Config::Get<int>("if_viewer_open")){
         frontend_->SetViewer(viewer_);
@@ -54,17 +60,20 @@ bool VisualOdometry::Init() {
     if(Config::Get<int>("if_viewer_open")){
         viewer_->SetMap(map_);
     }
-    
 
+    if(Config::Get<int>("use_realworld")){
+        dataset_->initRealworldCamera();
+    }
+    
     return true; 
 }
 
 void VisualOdometry::Run() {
+    
     bool flag_close_viewer = false;
     while (1) {
         // LOG(INFO) << "VO is running";
-        if (Step() == false) {
-
+        if (Step() == false || viewer_->GetCloseFlag()) {
         backend_->Stop();
         // fdetect_->Close();
         if(Config::Get<int>("if_saves_poses")){
@@ -75,11 +84,11 @@ void VisualOdometry::Run() {
             char time_buffer[80];
             std::strftime(time_buffer, sizeof(time_buffer), "%m%d_%H%M", &timeinfo);
             // 构建序列名
-            std::string dataset_dir = Config::Get<std::string>("dataset_dir");
             std::string last_two_chars;
-            if (dataset_dir.size() >= 2) {
-                last_two_chars = dataset_dir.substr(dataset_dir.size() - 2);
+            if (dataset_dir_str.size() >= 2) {
+                last_two_chars = dataset_dir_str.substr(dataset_dir_str.size() - 2);
             } else {
+                if(Config::Get<int>("use_realworld")) last_two_chars = "rw";
                 LOG(INFO) << "The input string is too short.";
             }
             // 构建文件名
@@ -92,6 +101,7 @@ void VisualOdometry::Run() {
             else{
                 file_name = "tum_poses_" + last_two_chars +"_"  + std::string(time_buffer) + ".txt";
             }
+            
             std::ofstream outputFile(file_name);
             std::unordered_map<unsigned long, Frame::Ptr> all_keyframes_;
             all_keyframes_ = map_->GetAllKeyFrames();
@@ -99,7 +109,26 @@ void VisualOdometry::Run() {
             auto it = all_keyframes_.find(i);
             if (it != all_keyframes_.end()) {
                 auto element = it->second;
-                SE3 Twc = element->Pose().inverse();
+                SE3 Twc;
+                cv::Mat transMat;
+                if(Config::Get<int>("use_openloris")){
+                    if(Config::Get<std::string>("use_openloris_scene") == "corridor1"){
+                        transMat = Config::Get<cv::Mat>("corridor1.trans_matrix.matrix_fisheye1_to_base_link");
+                    }else if(Config::Get<std::string>("use_openloris_scene") == "market1"){
+                        transMat = Config::Get<cv::Mat>("market1.trans_matrix.matrix_fisheye1_to_base_link");
+                    }
+                    
+                    Eigen::Matrix4d eigentransMat;
+                    for(int i=0;i<4;i++)
+                        for(int j=0;j<4;j++)
+                            eigentransMat(i,j) = transMat.at<double>(i,j);
+                    SE3 T_eigentransMat = SE3(eigentransMat);
+                    Twc = T_eigentransMat * element->Pose().inverse() ; //
+                }else{
+                    
+                    Twc = element->Pose().inverse(); //;
+                }
+                
                 Eigen::Vector3d translation = Twc.translation();
                 Eigen::Matrix3d rotation_matrix = Twc.rotationMatrix();
                 double time_stamp = element->time_stamp_;
@@ -111,7 +140,7 @@ void VisualOdometry::Run() {
                 
                 if(Config::Get<int>("set_saves_poses_tum")){
                     Eigen::Quaterniond quaternion(rotation_matrix);
-                    outputFile << time_stamp << " " << translation.x() << " " << translation.y() << " " << translation.z() << " " 
+                    outputFile << std::fixed << std::setprecision(8) << time_stamp << " " << translation.x() << " " << translation.y() << " " << translation.z() << " " 
                            << quaternion.x() << " " << quaternion.y() << " " << quaternion.z() << " " << quaternion.w() << "\n";
                 }
 
@@ -174,18 +203,22 @@ void VisualOdometry::Run() {
     }
     if(Config::Get<int>("if_viewer_open"))
     viewer_->Close();
-
     LOG(INFO) << "VO exit";
 }
 
 bool VisualOdometry::Step() {
-    
-    Frame::Ptr new_frame = dataset_->NextFrame();  
-
-    if (new_frame == nullptr) {return false;}
-
+    Frame::Ptr new_frame;
     auto t1 = std::chrono::high_resolution_clock::now();
+    if(use_realworld_flag){
+        new_frame = dataset_->RealworldNextFrame(); 
+        if (new_frame == nullptr) {return true;}
+    }else{
+        new_frame = dataset_->DatasetNextFrame();  
+        if (new_frame == nullptr) {return false;}
+    }
+    step_image_index_++;
     bool success = frontend_->AddFrame(new_frame);
+    if(success == false) LOG(INFO) << "step_image_index: " << step_image_index_;
     auto t2 = std::chrono::high_resolution_clock::now();
     auto time_used =
         std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);

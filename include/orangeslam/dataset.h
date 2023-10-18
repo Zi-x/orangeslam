@@ -1,9 +1,11 @@
+#pragma once
 #ifndef ORANGESLAM_DATASET_H
 #define ORANGESLAM_DATASET_H
+#include "orangeslam/config.h"
 #include "orangeslam/camera.h"
 #include "orangeslam/common_include.h"
 #include "orangeslam/frame.h"
-
+#include <opencv2/opencv.hpp>
 namespace orangeslam {
 
 /**
@@ -13,15 +15,21 @@ namespace orangeslam {
  */
 class Dataset {
    public:
+
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
     typedef std::shared_ptr<Dataset> Ptr;
+
     Dataset(const std::string& dataset_path);
 
-    /// 初始化，返回是否成功
     bool Init();
 
     /// create and return the next frame containing the stereo images
-    Frame::Ptr NextFrame();
+    Frame::Ptr DatasetNextFrame();
+
+    Frame::Ptr RealworldNextFrame();
+
+    bool initRealworldCamera();
 
     /// get camera by id
     Camera::Ptr GetCamera(int camera_id) const {
@@ -29,11 +37,45 @@ class Dataset {
     }
 
    private:
+    cv::VideoCapture cap;
+
+    cv::Mat map1_left, map2_left;
+    
+    cv::Mat map1_right, map2_right;
+
+    cv::Mat distortionCoefficients_left;
+    
+    cv::Mat distortionCoefficients_right;
+
+    cv::Mat openloris_cameraMatrix_right;
+
+    cv::Mat openloris_cameraMatrix_left;
+
+    cv::Mat realworld_cameraMatrix_right;
+
+    cv::Mat realworld_cameraMatrix_left;
+    
     std::string dataset_path_;
+
+    SE3 T_openloris;
+
+    SE3 T_realworld;
 
     std::vector<double> time_stamp_values;
 
+    std::vector<double> time_stamp_values_left;
+
+    std::vector<double> time_stamp_values_right;
+
+    std::vector<std::string> openloris_filenames_right;
+    
+    std::vector<std::string> openloris_filenames_left;
+
     int current_image_index_ = 0;
+    int current_timestamp_index_ = 0;
+
+    float resize_scale;
+
 
     std::vector<Camera::Ptr> cameras_;
 };

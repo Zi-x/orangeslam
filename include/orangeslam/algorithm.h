@@ -18,7 +18,7 @@ namespace orangeslam {
  * @return true if success
  */
 inline bool triangulation(const std::vector<SE3> &poses,
-                   const std::vector<Vec3> points, Vec3 &pt_world) {
+                   const std::vector<Vec3> points, Vec3 &pt_world, double e) {
     MatXX A(2 * poses.size(), 4);
     VecX b(2 * poses.size());
     b.setZero();
@@ -30,7 +30,7 @@ inline bool triangulation(const std::vector<SE3> &poses,
     auto svd = A.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV);
     pt_world = (svd.matrixV().col(3) / svd.matrixV()(3, 3)).head<3>();
 
-    if (svd.singularValues()[3] / svd.singularValues()[2] < 1e-2) {
+    if (svd.singularValues()[3] / svd.singularValues()[2] < e) {
         // 解质量不好，放弃
         return true;
     }

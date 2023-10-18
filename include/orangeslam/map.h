@@ -19,7 +19,7 @@ class Map {
     typedef std::unordered_map<unsigned long, MapPoint::Ptr> LandmarksType;
     typedef std::unordered_map<unsigned long, Frame::Ptr> KeyframesType;
 
-    Map() {}
+    Map();
 
     /// 增加一个关键帧
     void InsertKeyFrame(Frame::Ptr frame);
@@ -66,6 +66,9 @@ class Map {
 
     // settings
     int num_active_keyframes_ = 7;  // 激活的关键帧数量
+
+    // float max_dis_th = 4.8;
+    float min_dis_th = 0.3;
 };
 }  // namespace orangeslam
 

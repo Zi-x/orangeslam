@@ -32,9 +32,9 @@ MapPoint::Ptr MapPoint::CreateNewMappoint() {
 }
 
 void MapPoint::RemoveObservation(std::shared_ptr<Feature> feat) {
-    std::unique_lock<std::mutex> lck(data_mutex_);
-    for (auto iter = observations_.begin(); iter != observations_.end();
-         iter++) {
+    std::unique_lock<std::mutex> lck(data_mutex_mappoint_);
+    for (auto iter = observations_.begin(); iter != observations_.end(); iter++)
+        {
         if (iter->lock() == feat) {
             observations_.erase(iter);
             feat->map_point_.reset();

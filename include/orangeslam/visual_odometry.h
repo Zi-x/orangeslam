@@ -45,7 +45,14 @@ class VisualOdometry {
 
     // init
     bool inited_ = false;
+
+    bool use_realworld_flag = false;
+
+    std::string dataset_dir_str;
+
     std::string config_file_path_;
+
+    int step_image_index_ = 0;
 
     Frontend::Ptr frontend_ = nullptr;
     Backend::Ptr backend_ = nullptr;
@@ -58,6 +65,7 @@ class VisualOdometry {
     // dataset
     Dataset::Ptr dataset_ = nullptr;
     count_time countfor_vo;
+    
 };
 }  // namespace orangeslam
 

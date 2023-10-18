@@ -2,13 +2,14 @@
 #include "orangeslam/viewer.h"
 #include "orangeslam/feature.h"
 #include "orangeslam/frame.h"
-
+#include "orangeslam/config.h"
 #include <pangolin/pangolin.h>
 #include <opencv2/opencv.hpp>
 
 namespace orangeslam {
 
 Viewer::Viewer() {
+    if_viewer_map_updated_realtime = Config::Get<int>("if_viewer_map_updated_realtime");
     viewer_thread_ = std::thread(std::bind(&Viewer::ThreadLoop, this));
 }
 
@@ -27,8 +28,10 @@ void Viewer::AddCurrentFrame(Frame::Ptr current_frame) {
 void Viewer::UpdateMap() {
     assert(map_ != nullptr);
 
-    std::unique_lock<std::mutex> lock(viewer_data_mutex_);
-    viewer_map_update_.notify_one();
+    if(!if_viewer_map_updated_realtime){
+        std::unique_lock<std::mutex> lock(viewer_data_mutex_);
+        viewer_map_update_.notify_one();
+    }
     
     // std::unique_lock<std::mutex> lck(viewer_data_mutex_);
     // all_keyframes_ = map_->GetAllKeyFrames();
@@ -39,12 +42,12 @@ void Viewer::UpdateMap() {
 }
 
 void Viewer::ThreadLoop() {
-    int WIN_WIDTH = 1137;
-    int WIN_HEIGHT = 640;
-    int UI_WIDTH = 100;
-    const float blue[3] = {0, 0, 1};
+    int WIN_WIDTH = 720;
+    int WIN_HEIGHT = 400;
+    int UI_WIDTH = 90;
+    // const float blue[3] = {0, 0, 1};
     const float green[3] = {0, 1, 0};
-    const float red[3] = {1, 0, 0};
+    // const float red[3] = {1, 0, 0};
     
     pangolin::CreateWindowAndBind("OrangeSLAM", WIN_WIDTH, WIN_HEIGHT);
     glEnable(GL_DEPTH_TEST);
@@ -56,12 +59,12 @@ void Viewer::ThreadLoop() {
     // 参数centerX、centerY和centerZ表示相机观察的目标点坐标，即相机的注视点
     // 参数upX、upY和upZ表示相机的上方向向量
     pangolin::OpenGlRenderState vis_2d_camera(
-        pangolin::ProjectionMatrix(WIN_WIDTH, WIN_HEIGHT, 400, 400, 512, 384, 0.1, 1500),
-        pangolin::ModelViewLookAt(0, -100, 40, 0, 0, 50, 0, -1.0, 0.0));    
+        pangolin::ProjectionMatrix(WIN_WIDTH, WIN_HEIGHT, 400, 400, WIN_WIDTH/2, WIN_HEIGHT/2, 0.1, 750),
+        pangolin::ModelViewLookAt(0, -50, 10, 0, 0, 20, 0, -1.0, 0.0));    
 
 
     pangolin::OpenGlRenderState vis_camera(
-        pangolin::ProjectionMatrix(WIN_WIDTH, WIN_HEIGHT, 400, 400, 512, 384, 0.1, 1500),
+        pangolin::ProjectionMatrix(WIN_WIDTH, WIN_HEIGHT, 400, 400, WIN_WIDTH/2, WIN_HEIGHT/2, 0.1, 750),
         pangolin::ModelViewLookAt(0, -5, -10, 0, 0, 0, 0.0, -1.0, 0.0));
     
     // Add named OpenGL viewport to window and provide 3D Handler
@@ -70,15 +73,15 @@ void Viewer::ThreadLoop() {
     // 0.0, 1.0：视口在窗口中的水平范围，从左到右的比例。
     pangolin::View& vis_2d_display =
         pangolin::Display("2d-trajectory")
-            .SetBounds(0.0, 1.0, pangolin::Attach::Pix(UI_WIDTH), 0.7, 768.0f / 768.0f)
+            .SetBounds(0.0, 1.0, pangolin::Attach::Pix(UI_WIDTH), 1, 768.0f / 540.0f)
             .SetHandler(new pangolin::Handler3D(vis_2d_camera));
 
     
-    pangolin::View& vis_display =
-        pangolin::Display("3d-Frame")
-            .SetBounds(0.5, 1.0,0.5, 1.0, 4.0f / 4.0f)
-            .SetHandler(new pangolin::Handler3D(vis_camera))
-            .SetLock(pangolin::LockRight, pangolin::LockTop);
+    // pangolin::View& vis_display =
+    //     pangolin::Display("3d-Frame")
+    //         .SetBounds(0.5, 1.0,0.5, 1.0, 4.0f / 4.0f)
+    //         .SetHandler(new pangolin::Handler3D(vis_camera))
+    //         .SetLock(pangolin::LockRight, pangolin::LockTop);
 
     pangolin::CreatePanel("ui")
         .SetBounds(0.0, 1.0, 0.0, pangolin::Attach::Pix(UI_WIDTH));
@@ -91,18 +94,21 @@ void Viewer::ThreadLoop() {
 
     while (!pangolin::ShouldQuit() && viewer_running_) {
 
-        // if(map_updated_){
-        //     std::unique_lock<std::mutex> lock(viewer_data_mutex_);
-        //     all_keyframes_ = map_->GetAllKeyFrames();
-        //     active_landmarks_ = map_->GetActiveMapPoints();
-        //     map_updated_ = false;
+        if(if_viewer_map_updated_realtime)
+        if(map_updated_){
+            std::unique_lock<std::mutex> lock(viewer_data_mutex_);
+            all_keyframes_ = map_->GetAllKeyFrames();
+            active_landmarks_ = map_->GetActiveMapPoints();
+            
 
-        // }
-
-        std::unique_lock<std::mutex> lock(viewer_data_mutex_);
-        viewer_map_update_.wait(lock);
-        all_keyframes_ = map_->GetAllKeyFrames();
-        active_landmarks_ = map_->GetActiveMapPoints();
+        }
+        if(!if_viewer_map_updated_realtime){
+            std::unique_lock<std::mutex> lock(viewer_data_mutex_);
+            viewer_map_update_.wait(lock);
+            all_keyframes_ = map_->GetAllKeyFrames();
+            active_landmarks_ = map_->GetActiveMapPoints();
+        }
+        
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -114,6 +120,10 @@ void Viewer::ThreadLoop() {
             cv::Mat img = PlotFrameImage();
             cv::imshow("image", img);
             cv::waitKey(1);
+            // cv::Mat img_right = PlotRightFrameImage();
+            // cv::imshow("image_right", img_right);
+            // cv::waitKey(1);
+
         }
         if (all_keyframes_.size() > 0) {
             DrawAxis(5.0f); 
@@ -135,7 +145,8 @@ void Viewer::ThreadLoop() {
         //     DrawMapPoints();
         // }
         pangolin::FinishFrame();
-        std::this_thread::sleep_for(std::chrono::milliseconds(5)); /// now use notify and wait
+        map_updated_ = false;
+        std::this_thread::sleep_for(std::chrono::milliseconds(20)); /// now use notify and wait
     }
     // SavesTrajectory();
     SetCloseFlag(true);
@@ -144,16 +155,40 @@ void Viewer::ThreadLoop() {
 
 cv::Mat Viewer::PlotFrameImage() {
     cv::Mat img_out;
-    cv::cvtColor(current_frame_->left_img_, img_out, CV_GRAY2BGR);
+    float resize_;
+    cv::cvtColor(current_frame_->left_img_, img_out, cv::COLOR_GRAY2BGR);
+    if(img_out.cols > 480) resize_ = 0.35;
+    else resize_ = 1;
+    cv::resize(img_out, img_out, cv::Size(), resize_, resize_, cv::INTER_LINEAR);
+    
     for (size_t i = 0; i < current_frame_->features_left_.size(); ++i) {
         if (current_frame_->features_left_[i]->map_point_.lock()) {
             auto feat = current_frame_->features_left_[i];
-            cv::circle(img_out, feat->position_.pt, 2, cv::Scalar(0, 250, 0),
-                       2);
+            cv::circle(img_out, feat->position_.pt*resize_, 2, cv::Scalar(0, 250, 0), 2);
         }
     }
+
+    for (size_t i = 0; i < current_frame_->fdetect_rec_.size(); ++i) {
+        cv::Rect rec_ = current_frame_->fdetect_rec_[i];
+        cv::rectangle(img_out, rec_, cv::Scalar(0, 0, 255), 2);
+        
+    }
+    
     return img_out;
 }
+
+// cv::Mat Viewer::PlotRightFrameImage() {
+//     cv::Mat img_out;
+//     cv::cvtColor(current_frame_->right_img_, img_out, CV_GRAY2BGR);
+//     for (size_t i = 0; i < current_frame_->features_right_.size(); ++i) {
+//         if (current_frame_->features_right_[i]->map_point_.lock()) {
+//             auto feat = current_frame_->features_right_[i];
+//             cv::circle(img_out, feat->position_.pt, 2, cv::Scalar(0, 250, 0),
+//                        2);
+//         }
+//     }
+//     return img_out;
+// }
 
 void Viewer::FollowCurrentFrame(pangolin::OpenGlRenderState& vis_camera) {
     SE3 Twc = current_frame_->Pose().inverse();
@@ -316,7 +351,7 @@ void Viewer::Draw2dTrajectory(){
         float colormap = adaptiveMap(high, minVal, maxVal);
         
         glColor3f(getColor(colormap)[0],getColor(colormap)[1],getColor(colormap)[2]);
-        glLineWidth(1);
+        glLineWidth(2);
         glBegin(GL_LINES);
         glVertex3d(translation1.x(), 0, translation1.z());
         glVertex3d(translation2.x(), 0, translation2.z());

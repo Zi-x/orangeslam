@@ -29,6 +29,8 @@ struct Frame {
     std::mutex pose_mutex_;          // Pose数据锁
     cv::Mat left_img_, right_img_;   // stereo images
 
+    
+    std::vector<cv::Rect> fdetect_rec_;
     // extracted features in left image
     std::vector<std::shared_ptr<Feature>> features_left_;
     // corresponding features in right image, set to nullptr if no corresponding

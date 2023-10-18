@@ -1,0 +1,25 @@
+Loaded 4071 stamps and poses from: /home/orangepi/Downloads/posetrue_kitti_to_tum/kitti_08_tum.txt
+Loaded 492 stamps and poses from: ./build/tum_poses_08_0821_2044.txt
+--------------------------------------------------------------------------------
+Synchronizing trajectories...
+Found 492 of max. 492 possible matching timestamps between...
+	/home/orangepi/Downloads/posetrue_kitti_to_tum/kitti_08_tum.txt
+and:	./build/tum_poses_08_0821_2044.txt
+..with max. time diff.: 0.01 (s) and time offset: 0.0 (s).
+--------------------------------------------------------------------------------
+Compared 492 absolute pose pairs.
+Calculating APE for full transformation pose relation...
+--------------------------------------------------------------------------------
+APE w.r.t. full transformation (unit-less)
+(not aligned)
+
+       max	43.132206
+      mean	14.053771
+    median	11.376944
+       min	0.037406
+      rmse	17.217639
+       sse	145851.969352
+       std	9.946788
+
+--------------------------------------------------------------------------------
+Plotting results... 

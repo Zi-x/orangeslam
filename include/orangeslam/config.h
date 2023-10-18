@@ -26,8 +26,18 @@ class Config {
     // access the parameter values
     template <typename T>
     static T Get(const std::string &key) {
-        return T(Config::config_->file_[key]);
+        T data_;  
+        // LOG(INFO) << "Init2.  " << key;
+        // std::cout << "OpenCV version: " << cv::getVersionString() << std::endl;
+        Config::config_->file_[key] >> data_;
+        // LOG(INFO) << "Init2.1";
+        return data_;
     }
+
+    // template <typename T>
+    // static T Get(const std::string &key) {
+    //     return T(Config::config_->file_[key]);
+    // }
 };
 }  // namespace orangeslam
 

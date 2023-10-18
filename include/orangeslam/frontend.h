@@ -3,7 +3,7 @@
 #define ORANGESLAM_FRONTEND_H
 
 #include <opencv2/features2d.hpp>
-
+#include <opencv2/opencv.hpp>
 #include "orangeslam/common_include.h"
 #include "orangeslam/frame.h"
 #include "orangeslam/map.h"
@@ -46,15 +46,38 @@ class Frontend {
         camera_right_ = right;
     }
 
-    bool inBorder(const cv::Point2f &pt)
-        {
+    bool inBorder(const cv::Point2f &pt){
         const int BORDER_SIZE = 0.2;
         int img_x = cvRound(pt.x);
         int img_y = cvRound(pt.y);
         float w = camera_left_->width;
         float h = camera_left_->height;
         return BORDER_SIZE <= img_x && img_x < w - BORDER_SIZE && BORDER_SIZE <= img_y && img_y < h - BORDER_SIZE;
-        }
+    }
+    
+
+    bool isPointInnerFdetectRect(const cv::Point& point, const cv::Rect& rect, int padding) {
+        int x1 = rect.x + padding;
+        int y1 = rect.y + padding;
+        int x2 = rect.x + rect.width - padding;
+        int y2 = rect.y + rect.height - padding;
+        // 检查点是否在缩小后的矩形内
+        return (point.x >= x1 && point.x <= x2 && point.y >= y1 && point.y <= y2);
+    }
+
+    bool isPointInnerFdetectEllipse(const cv::Point& point, const cv::Rect& rect) {
+        cv::Point center((rect.x + rect.width) / 2, (rect.y + rect.height) / 2);
+
+        // 计算矩形的内切椭圆参数
+        cv::Size axes(rect.width / 2, rect.height / 2);
+
+        // 使用 cv::ellipse 函数获取内切椭圆
+        cv::Mat ellipseMask = cv::Mat::zeros(rect.size(), CV_8UC1);
+        cv::ellipse(ellipseMask, center, axes, 0, 0, 360, cv::Scalar(255), -1);
+
+        // 检查点是否在内切椭圆内
+        return (ellipseMask.at<uchar>(point.y , point.x ) != 0);
+    }
 
     count_time countfor_tracklast;
     count_time countfor_estimate;
@@ -105,6 +128,10 @@ class Frontend {
      */
     bool StereoInit();
 
+    bool ReBuildInitMap();
+
+    bool ReStereoInit();
+
     /**
      * Detect features in left image in current_frame_
      * keypoints will be saved in current_frame_
@@ -139,12 +166,17 @@ class Frontend {
     bool if_set_viewer = false;
     bool if_set_fdetect = false;
     bool if_set_inborder = false;
+    bool track_backend_open = false;
 
     int detect_max_features_; 
     int num_features_init_ = 50; 
+    int inlier_features_needed_for_keyframe_ = 85;//85
+    int inlier_features_needed_for_not_keyframe_ = 180;
 
     int xgrid = 3;
     int ygrid = 2;
+
+    double trian_E = 0.01;
 
     // data
     FrontendStatus status_ = FrontendStatus::INITING;
@@ -163,6 +195,14 @@ class Frontend {
 
     int tracking_inliers_ = 0;  // inliers, used for testing new keyframes
 
+    SE3 relative_motion_Re;
+
+    int reset_index = 0;
+
+    int if_frontend_ReStereoInit_open = 0;
+
+    double chi2_th;
+
     //disparity
     float average_one_track_disparity_x = 0;
     float average_one_track_disparity_y = 0;
@@ -170,12 +210,11 @@ class Frontend {
     float disparity_accumulate_y = 0;
     float disparity_accumulate_xy = 0;
     float disparity_needed_for_keyframe = 30; //视差阈值
-    float inlier_features_needed_for_not_keyframe_ = 160;
+    
 
     // params
     int num_features_tracking_ = 50; //50
-    int num_features_tracking_bad_ = 20; //20
-    int inlier_features_needed_for_keyframe_ = 85;//85
+    int min_num_features_tracking = 20; //20
     
     // utilities
     // cv::Ptr<cv::GFTTDetector> gftt_;  // feature detector in opencv

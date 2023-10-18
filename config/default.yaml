@@ -1,27 +1,227 @@
 %YAML:1.0
 # data
-# the tum dataset directory, change it to yours! 
-# dataset_dir: /media/xiang/Data/Dataset/Kitti/dataset/sequences/05_quick_test
-dataset_dir: /home/orangepi/Downloads/Dataset/kitti/sequences/10
+# 00 03 04 05 08 10 9?
 
-
+# └──openloris
+#  ├── corridor1-1
+#  ├── corridor1-2
+#  ├── corridor1-4 ---can run
+#  ├── corridor1-5
+#  └── market1-1
+#   └──fisheye1.txt 内第一行 1560100059.379718 fisheye1/1560100059.379718.png
+#   └──fishey1/1560100059.379718.png
+use_realworld: 1
+use_kitti: 0
+use_openloris: 0
+#corridor1  选择dataset_dir_openloris使用的场景，保持一致
+use_openloris_scene: market1  
+dataset_dir_kitti: /home/orangepi/Downloads/Dataset/kitti/sequences/08
+#corridor1-4 
+dataset_dir_openloris: /home/orangepi/Downloads/Dataset/openloris/market1-1
+openloris_begin_frame: 0
 # camera intrinsics
 camera.fx: 517.3
 camera.fy: 516.5
-camera.cx: 325.1
-camera.cy: 249.7
+#for fdetect must set for ncnn nocn resize not throw coredump 
+camera.cx: 424
+camera.cy: 400
 # features param
-detect_max_features: 570
+detect_max_features: 188
 num_features_init: 50
-num_features_tracking: 50
+min_num_features_tracking: 20
+
+fast_threshold: 15
+disparity_needed_for_keyframe : 25
+inlier_features_needed_for_keyframe: 88
+inlier_features_needed_for_not_keyframe: 180
+if_frontend_ReStereoInit_open: 0
 # viewer fdetect saves param
-if_viewer_open: 0
+track_backend_open: 1
+if_viewer_map_updated_realtime: 0
+if_viewer_open: 1
 if_fdetect_open: 0
 if_saves_poses : 1
 set_saves_poses_kitti: 0
 set_saves_poses_tum: 1
+resize_scale: 1.0
+#backend param
+num_active_keyframes: 7
+#thresh
+map_min_dis_th: 0.4
+backend_chi_th: 2.99
+frontend_chi_th: 3.99
+
 # frontend param
 if_set_inborder: 0
 # grid param
-grid_size_x: 5
-grid_size_y: 4
+grid_size_x: 3
+grid_size_y: 2
+trian_E: 0.013
+# realwrold camera param
+#
+# K = | f_x   0   c_x |
+#     | 0    f_y  c_y |
+#     | 0    0    1   |-91.55412539226077;
+realworldtest.stereo1.intrinsics: !!opencv-matrix
+  rows: 3
+  cols: 3
+  dt: d
+  data: [762.0980646871501, 0, 577.9599151611328, 
+        0, 762.0980646871501, 390.6404800415039,
+        0, 0, 1]
+realworldtest.stereo2.intrinsics: !!opencv-matrix
+  rows: 3
+  cols: 3
+  dt: d
+  data: [762.0980646871501, 0, 577.9599151611328, 
+        0, 762.0980646871501, 390.6404800415039,
+        0, 0, 1]
+realworldtest.trans_matrix.matrix_l_to_r: !!opencv-matrix
+  rows: 4
+  cols: 4
+  dt: d
+  data: [ 0.999998672090406, 0.000367517564847647, 0.00158768645046031, -9.1554e-02,
+        -0.000361297029340995, 0.999992265219580, -0.00391649913428897, 0,
+        -0.00158911355227881, 0.00391592030713412, 0.999991070103262, 0,
+         0., 0., 0.,1. ]
+
+realworld.stereo1.intrinsics: !!opencv-matrix
+  rows: 3
+  cols: 3
+  dt: d
+  data: [726.428028135444, 0, 614.315352361678,
+        0, 726.575817441779, 379.179466195901,
+        0, 0, 1]
+realworld.stereo1.distortion_coefficients: !!opencv-matrix  
+  rows: 1
+  cols: 2
+  dt: d
+  data: [0.115497191129462, -0.151275365106795]  
+
+realworld.stereo2.intrinsics: !!opencv-matrix
+  rows: 3
+  cols: 3
+  dt: d
+  data: [725.435276371788, 0, 590.894777323035,
+        0, 725.421332637890, 388.389122881831,
+        0, 0, 1]
+realworld.stereo2.distortion_coefficients: !!opencv-matrix  
+  rows: 1
+  cols: 2
+  dt: d
+  data: [0.0872979193926210, -0.0779462063093871]    
+
+realworld.trans_matrix.matrix_l_to_r: !!opencv-matrix
+  rows: 4
+  cols: 4
+  dt: d
+  data: [ 0.999998672090406, 0.000367517564847647, 0.00158768645046031, -12.0134229960309e-02,
+        -0.000361297029340995, 0.999992265219580, -0.00391649913428897, 0.0292121844328691e-03,
+        -0.00158911355227881, 0.00391592030713412, 0.999991070103262, -0.135841578539313e-03,
+         0., 0., 0.,1. ]
+
+
+
+# openloris param
+# 左右目鱼眼相机内参
+# distortion_model: Kannala-Brandt
+corridor1.t265_fisheye1_optical_frame.intrinsics: !!opencv-matrix
+  rows: 1
+  cols: 4
+  dt: d
+  data: [ 2.8498089599609375e+02, 4.2524438476562500e+02,
+      2.8610238647460938e+02, 3.9846759033203125e+02 ]
+
+corridor1.t265_fisheye1_optical_frame.distortion_coefficients: !!opencv-matrix
+  rows: 1
+  cols: 5
+  dt: d
+  data: [ -7.3047108016908169e-03, 4.3499931693077087e-02,
+      -4.1283041238784790e-02, 7.6524601317942142e-03, 0. ]
+
+corridor1.t265_fisheye2_optical_frame.intrinsics: !!opencv-matrix
+  rows: 1
+  cols: 4
+  dt: d
+  data: [ 2.8481259155273438e+02, 4.2766159057617188e+02,
+      2.8597601318359375e+02, 3.9712341308593750e+02 ]
+
+corridor1.t265_fisheye2_optical_frame.distortion_coefficients: !!opencv-matrix
+  rows: 1
+  cols: 5
+  dt: d
+  data: [ -6.3794981688261032e-03, 4.1455611586570740e-02,
+      -3.9464488625526428e-02, 6.9808149710297585e-03, 0. ]
+
+corridor1.trans_matrix.matrix_fisheye1_to_base_link: !!opencv-matrix
+  rows: 4
+  cols: 4
+  dt: d
+  data: [ 1.1515021115098723e-02, 1.1168928045214688e-02,
+      9.9987132138842738e-01, 2.3757012582900000e-01,
+      -9.9980450143399557e-01, 1.6202345704292576e-02,
+      1.1333265460512609e-02, -3.8724749600600003e-02,
+      -1.6073680382497624e-02, -9.9980635076998781e-01,
+      1.1353314888696842e-02, 8.9507556927800003e-01, 0., 0., 0.,
+      1. ]
+
+corridor1.trans_matrix.matrix_fisheye1_to_fisheye2: !!opencv-matrix
+  rows: 4
+  cols: 4
+  dt: d
+  data: [ 9.9997103351978955e-01, -3.0859078732664710e-03,
+      6.9576787768359741e-03, 6.3976511359200003e-02,
+      3.1121161181976121e-03, 9.9998809175217129e-01,
+      -3.7591338254934705e-03, 1.4826713595499999e-04,
+      -6.9459955824040347e-03, 3.7806780408845384e-03,
+      9.9996872932053249e-01, -3.9846837171399999e-04, 0., 0., 0.,
+      1. ]
+################
+market1.t265_fisheye1_optical_frame.intrinsics: !!opencv-matrix
+  rows: 1
+  cols: 4
+  dt: d
+  data: [ 2.8344720458984375e+02, 4.2498699951171875e+02,
+      2.8456570434570312e+02, 3.9739138793945312e+02 ]
+market1.t265_fisheye1_optical_frame.distortion_coefficients: !!opencv-matrix
+  rows: 1
+  cols: 5
+  dt: d
+  data: [ -2.1781339310109615e-03, 3.7803109735250473e-02,
+      -3.5849031060934067e-02, 5.7638869620859623e-03, 0. ]
+market1.t265_fisheye2_optical_frame.intrinsics: !!opencv-matrix
+  rows: 1
+  cols: 4
+  dt: d
+  data: [ 2.8364129638671875e+02, 4.2345190429687500e+02,
+      2.8482809448242188e+02, 4.0032971191406250e+02 ]
+market1.t265_fisheye2_optical_frame.distortion_coefficients: !!opencv-matrix
+  rows: 1
+  cols: 5
+  dt: d
+  data: [ 8.7154511129483581e-04, 2.9413620010018349e-02,
+      -2.7649799361824989e-02, 3.0997279100120068e-03, 0. ]
+#
+market1.trans_matrix.matrix_fisheye1_to_base_link: !!opencv-matrix
+  rows: 4
+  cols: 4
+  dt: d
+  data: [ -4.9581735970706475e-02, 3.5722927828206774e-01,
+      9.3269978781824769e-01, 8.7300000000000000e-01,
+      -9.9865411574604590e-01, -3.1961251332385476e-02,
+      -4.0846487202100656e-02, 2.5999999999999999e-02,
+      1.5218691192557421e-02, -9.3346972160394204e-01,
+      3.5833318334623221e-01, 6.8000000000000005e-01, 0., 0., 0.,
+      1. ]
+market1.trans_matrix.matrix_fisheye1_to_fisheye2: !!opencv-matrix
+  rows: 4
+  cols: 4
+  dt: d 
+  data: [ 9.9997974130643585e-01, -3.1362423552325577e-04,
+      6.3575637277560014e-03, 6.4078249037300000e-02,
+      3.3728347348993087e-04, 9.9999302128760181e-01,
+      -3.7207010028402045e-03, 3.9032954373400001e-04,
+      -6.3563524581395654e-03, 3.7227699274757758e-03,
+      9.9997286851568878e-01, -3.2292646938000000e-04, 0., 0., 0.,
+      1. ]
+###

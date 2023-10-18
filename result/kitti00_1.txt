@@ -1,0 +1,15 @@
+Compared 651 absolute pose pairs.
+Calculating APE for full transformation pose relation...
+
+APE w.r.t. full transformation (unit-less)
+(not aligned)
+
+       max	134.028367
+      mean	58.072265
+    median	53.323507
+       min	0.048250
+      rmse	65.883329
+       sse	2825739.126912
+       std	31.116316
+
+

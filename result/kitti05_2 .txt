@@ -1,0 +1,14 @@
+Compared 316 absolute pose pairs.
+Calculating APE for full transformation pose relation...
+--------------------------------------------------------------------------------
+APE w.r.t. full transformation (unit-less)
+(with SE(3) Umeyama alignment)
+
+       max	10.189513
+      mean	6.082837
+    median	6.085620
+       min	2.560299
+      rmse	6.271443
+       sse	12428.594209
+       std	1.526462
+
