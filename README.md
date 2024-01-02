@@ -8,11 +8,11 @@
 &nbsp;&nbsp;&nbsp;·增加真实相机入口，关闭可视化窗口时触发保存轨迹<br>
 帧数计算<br>
 &nbsp;&nbsp;&nbsp;·添加了一个帧数计算的类，能够输入每秒系统帧率<br>
-&nbsp;&nbsp;&nbsp;&nbsp;同时当程序自然退出，能输出各步骤的最小/大用时、平均用时与帧率<br>
+&nbsp;&nbsp;&nbsp;&nbsp;·同时当程序自然退出，能输出各步骤的最小/大用时、平均用时与帧率<br>
 自定义参数<br>
 &nbsp;&nbsp;&nbsp;·在yaml增加了许多可自定义的参数，便于调试<br>
 效率改进<br>
-&nbsp;&nbsp;&nbsp;·增加关键帧更新viewer机制，可大大加快主线程帧率<br>
+&nbsp;&nbsp;&nbsp;·增加关键帧更新viewer机制，viewer通过wait和notify与主线程通信，可大大加快主线程帧率,同一个数据集从原来的30FPS提升到100FPS<br>
 &nbsp;&nbsp;&nbsp;·改善后端backend中一处nullptr的bug（虽然很难触发，把后端阈值过小会触发coredump）<br>
 &nbsp;&nbsp;&nbsp;·改善数据集跑完后viewer自动退出问题，便于查看最终轨迹<br>
 项目即使部署在orangepi5上也能够流畅运行<br>
@@ -21,5 +21,5 @@
 当然这是没有开启目标检测的情况下，开启目标检测若要保持实时性需要降低分辨率，最好是降低camera源头输出分辨率（内参是需要解决的问题了）<br>
 综上，我就将项目命名为orangeslam了（~生活所迫，高博见谅~）<br>
 <br>
-[校园实验视频](https://www.bilibili.com/video/BV1my4y1A7gn)<br>
+video: [校园实验视频](https://www.bilibili.com/video/BV1my4y1A7gn)<br>
 剩下项目介绍及实验图片视频正在施工中...
