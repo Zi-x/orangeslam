@@ -13,7 +13,7 @@
 3.自定义参数<br>
 &nbsp;&nbsp;&nbsp;-&nbsp;在yaml增加了许多可自定义的参数，便于调试<br>
 4.效率改进<br>
-&nbsp;&nbsp;&nbsp;-&nbsp;增加关键帧更新viewer机制，viewer通过wait和notify与主线程通信，可大大加快主线程帧率，同一个数据集从原来的30FPS提升到100FPS。（代价是子线程viewer即相机画面和轨迹的可视化的刷新率很低）<br>
+&nbsp;&nbsp;&nbsp;-&nbsp;增加关键帧更新viewer机制，viewer通过wait和notify与主线程通信，可大大加快主线程帧率，同一个数据集从原来的30FPS提升到100FPS（代价是子线程viewer即相机画面和轨迹的可视化的刷新率很低）<br>
 &nbsp;&nbsp;&nbsp;-&nbsp;改善原系统后端backend中一处nullptr的bug（虽然很难触发，把后端阈值过小会触发coredump error）<br>
 &nbsp;&nbsp;&nbsp;-&nbsp;改善数据集跑完后viewer自动退出问题，便于查看最终轨迹<br>
 项目即使部署在orangepi5上也能够流畅运行<br>
