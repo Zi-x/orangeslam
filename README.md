@@ -6,9 +6,9 @@
 除外还改进了原系统的效率和增加了一些小功能：<br>
 1.轨迹保存<br>
 &nbsp;&nbsp;&nbsp;-&nbsp;数据集跑完可自动保存轨迹（可选kitti或者tum格式）<br>
-&nbsp;&nbsp;&nbsp;-&nbsp;增加真实相机入口，关闭可视化窗口时触发保存轨迹<br>
+&nbsp;&nbsp;&nbsp;-&nbsp;增加真实相机入口，关闭可视化窗口时自动保存轨迹<br>
 2.帧数计算<br>
-&nbsp;&nbsp;&nbsp;-&nbsp;添加了一个帧数计算的类，能够输入每秒系统帧率<br>
+&nbsp;&nbsp;&nbsp;-&nbsp;添加了一个帧数计算的类，能够输出每秒系统帧率<br>
 &nbsp;&nbsp;&nbsp;-&nbsp;同时当程序自然退出，能输出各步骤的最小/大用时、平均用时与帧率<br>
 3.自定义参数<br>
 &nbsp;&nbsp;&nbsp;-&nbsp;在yaml增加了许多可自定义的参数，便于调试<br>
